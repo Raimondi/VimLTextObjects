@@ -1,0 +1,116 @@
+# This tests are for runVimTests + vimTAP
+# Generic {{{1
+# Check for mappings with filetype plugin on
+ge001.vim
+
+# - Visual All {{{1
+# Sample 2, go to 'if' and :norm vard, repeat on 'endif' and inside the block.
+va001.vim
+# Sample 3, go to 'function' and :norm vard, repeat on 'endfunction' and
+# inside the block.
+va002.vim
+# Sample 4, go to 'while' and :norm vard, repeat on 'endwhile' and inside the
+# block.
+va003.vim
+# Sample 5, go to 'augroup' and :norm varard, repeat on 'augroup END'.
+va004.vim
+# Sample 6, go to 'for' and :norm 0vard, repeat on 'endfor' and the middle of
+# the block.
+va005.vim
+# Sample 7, go to 'try' and :norm 0vard, repeat on 'endtry' and inside the
+# block.
+va006.vim
+# Sample 2, go to the middle and :norm vararard
+va007.vim
+# Sample 2, go to first line outside block and :norm vard
+va008.vim
+# Sample 7, go to last line outside block and :norm vard
+va009.vim
+# Sample 1, go inside block and :norm v4ard.
+va010.vim
+# Sample 1, go inside block and :norm vGard, repeat upwards.
+va011.vim
+# Sample 1, go to the middle and :norm vararard.
+va012.vim
+# Sample 1, go to start of first nested block and :norm vard.
+va013.vim
+
+# - Visual Inner {{{1
+# Sample 2, go to 'if' and :norm vird, repeat on 'endif' and inside the block.
+vi001.vim
+# Sample 3, go to 'function' and :norm vird, repeat on 'endfunction' and
+# inside the block.
+vi002.vim
+# Sample 4, go to 'while' and :norm vird, repeat on 'endwhile' and inside the
+# block.
+vi003.vim
+# Sample 5, go to 'augroup' and :norm virird, repeat on 'augroup END'.
+vi004.vim
+# Sample 6, go to 'for' and :norm 0vird, repeat on 'endfor' and the middle of
+# the block.
+vi005.vim
+# Sample 7, go to 'try' and :norm 0vird, repeat on 'endtry' and inside the
+# block.
+vi006.vim
+# Sample 2, go to the middle and :norm virirird
+vi007.vim
+# Sample 2, go to first line outside block and :norm vird
+vi008.vim
+# Sample 7, go to last line outside block and :norm vird
+vi009.vim
+# Sample 1, go inside block and :norm v4ird.
+vi010.vim
+# Sample 1, go inside block and :norm vGird, repeat upwards.
+vi011.vim
+# Sample 1, go to the middle and :norm virirird.
+vi012.vim
+# Sample 1, go to start of first nested block and :norm vird.
+vi013.vim
+# Sample 1, go to the middle and :norm virird
+vi014.vim
+
+# - Operator Pending All {{{1
+# Sample 2, go to 'if' and :norm dar, repeat on 'endif' and inside the block.
+oa001.vim
+# Sample 3, go to 'function' and :norm dar, repeat on 'endfunction' and
+# inside the block.
+oa002.vim
+# Sample 4, go to 'while' and :norm dar, repeat on 'endwhile' and inside the
+# block.
+oa003.vim
+# Sample 6, go to 'for' and :norm 0dar, repeat on 'endfor' and the middle of
+# the block.
+oa004.vim
+# Sample 7, go to 'try' and :norm 0dar, repeat on 'endtry' and inside the
+# block.
+oa005.vim
+# Sample 2, go to first line outside block and :norm dar
+oa006.vim
+# Sample 7, go to last line outside block and :norm dar
+oa007.vim
+# Sample 1, go to start of first nested block and :norm dar.
+oa008.vim
+
+# - Operator Pending Inner {{{1
+# Sample 2, go to 'if' and :norm dir, repeat on 'endif' and inside the block.
+oi001.vim
+# Sample 3, go to 'function' and :norm dir, repeat on 'endfunction' and
+# inside the block.
+oi002.vim
+# Sample 4, go to 'while' and :norm dir, repeat on 'endwhile' and inside the
+# block.
+oi003.vim
+# Sample 6, go to 'for' and :norm 0dir, repeat on 'endfor' and the middle of
+# the block.
+oi004.vim
+# Sample 7, go to 'try' and :norm 0dir, repeat on 'endtry' and inside the
+# block.
+oi005.vim
+# Sample 2, go to first line outside block and :norm dir
+oi006.vim
+# Sample 7, go to last line outside block and :norm dir
+oi007.vim
+# Sample 1, go to start of first nested block and :norm dir.
+oi008.vim
+
+# vim: set fdm=marker tw=78: {{{1
