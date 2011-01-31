@@ -83,27 +83,26 @@ endif
 " Variables {{{1
 " Lines where this expression returns 1 will be skipped
 " Expression borrowed from default vim ftplugin
-" Ignore ":syntax region" commands, the 'end' argument clobbers if-endif
 let s:skip_e =
       \ 'getline(".") =~ "^\\s*sy\\%[ntax]\\s\\+region" ||'.
       \ 'synIDattr(synID(line("."),col("."),1),"name") =~? "comment\\|string\\|vim\k\{-}var"'
+
 
 " List of words that start a block at the beginning of the line
 let s:beg_words =
       \ '<fu%[nction]>|<%(wh%[ile]|for)>|<if>|<try>|<aug%[roup]\s+%(END>)@!\S'
 
 " Start of the block matches this
-let s:start_p   = '\C\v^\s*\zs%('.s:beg_words.')'
+let s:start_p = '\C\v^\s*\zs%('.s:beg_words.')'
 
 " Middle of the block matches this
-"let s:middle_p  = '\C\v^\s*\zs%(<el%[seif]>|<retu%[rn]>|<brea%[k]|<cat%[ch]>|<con%[tinue]>|<fina%[lly]>)'
-let s:middle_p  = '\C\v^\s*\zs%(<el%[seif]>|<cat%[ch]>|<fina%[lly]>)'
+let s:middle_p= '\C\v^\s*\zs%(<el%[seif]>|<cat%[ch]>|<fina%[lly]>)'
 
 " End of the block matches this
-let s:end_p     = '\C\v^\s*\zs%(<endf%[unction]>|<end%(w%[hile]|fo%[r])>|<en%[dif]>|<endt%[ry]>|<aug%[roup]\s+END>)'
+let s:end_p   = '\C\v^\s*\zs%(<endf%[unction]>|<end%(w%[hile]|fo%[r])>|<en%[dif]>|<endt%[ry]>|<aug%[roup]\s+END>)'
 
 " Don't wrap or move the cursor
-let s:flags     = 'Wn'
+let s:flags = 'Wn'
 
 " }}}1
 
@@ -119,14 +118,12 @@ elseif exists('testing_VimLTextObjects')
     if a:test == 1
       return s:Match(a:firstline, s:start_p).', '.s:Match(a:firstline, s:middle_p).', '.s:Match(a:firstline, s:end_p)
     elseif a:test == 2
-      return s:FindTextObject([a:firstline,0], [a:lastline,0], 1)
+      return s:FindTextObject([a:firstline,0], [a:lastline,0], s:middle_p)
     elseif a:test == 3
       return searchpairpos(s:start_p, s:middle_p, s:end_p, a:1, s:skip_e)
     elseif a:test == 4
-      return searchpairpos(s:start_p, '', s:end_p, a:1, s:skip_e)
-    elseif a:test == 5
       return match(getline('.'), 'bWn')
-    elseif a:test == 6
+    elseif a:test == 5
       return searchpos(s:start_p,'bn')
     else
       throw 'Ooops!'
@@ -141,7 +138,7 @@ let loaded_VimLTextObjects = '0.1a'
 function! s:VimLTextObjectsAll(visual) range "{{{2
   let lastline      = line('$')
   let start         = [0,0]
-  let middle_p      = 0
+  let middle_p      = ''
   let end           = [-1,0]
   let count1        = v:count1 < 1 ? 1 : v:count1
 
@@ -208,7 +205,7 @@ endfunction " }}}2
 function! s:VimLTextObjectsInner(visual) range "{{{2
   let lastline      = line('$')
   let start         = [0,0]
-  let middle_p      = 1
+  let middle_p      = s:middle_p
   let end           = [-1,0]
   let count1        = v:count1 < 1 ? 1 : v:count1
   let initial       = [a:firstline, a:lastline]
@@ -234,13 +231,9 @@ function! s:VimLTextObjectsInner(visual) range "{{{2
       let is_rec = 1
     endif
   endif
-  if first_TO == [[0,0],[0,0]] && a:visual
-    let [t_start, t_end] = [[a:firstline, 1],[a:lastline, 1]]
-    let [start, end]     = [[a:firstline, 1],[a:lastline, 1]]
-  else
-    let [t_start, t_end] = first_TO
-    let [start, end]     = first_TO
-  endif
+
+  let [t_start, t_end] = first_TO
+  let [start, end] = first_TO
   let passes  = 0
 
   let one_more = ((is_block && [start[0], end[0]] == initial) || is_rec) && a:visual
@@ -248,12 +241,12 @@ function! s:VimLTextObjectsInner(visual) range "{{{2
     let t_start[0] -= 1
     let t_end[0]   += 1
   endif
-  echom '[is_rec, is_block]: ['.is_rec.', '.is_block.'], t_start, t_end: '.t_start[0].', '.t_end[0] .', first_TO: '.string(first_TO).', one_more: '.one_more
-  while  (count1 > 1 || one_more) && (!one_more || first_TO != [[0,0],[0,0]]) &&
+  "echom '[is_rec, is_block]: ['.is_rec.', '.is_block.'], t_start, t_end: '.t_start[0].', '.t_end[0] .', first_TO: '.string(first_TO).', one_more: '.one_more
+  while  (count1 > 1 || one_more) && first_TO != [[0,0],[0,0]] &&
         \ (!(count1 > 1) || (t_start[0] - 1 >= 1 && t_end[0] + 1 < lastline))
 
     let passes  += 1
-    let [t_start, t_end] = s:FindTextObject([t_start[0] - 1, 0], [t_end[0] + 1, 0], middle_p)
+    let [t_start, t_end] = s:FindTextObject([t_start[0] - 1, 0], [t_end[0] + 1, 0], s:middle_p)
     "echom 't_start, t_end: '.string(t_start).','.string(t_end).':'.passes
 
     "echom string(t_start).';'.string(t_end).':'.passes
@@ -293,17 +286,13 @@ endfunction " }}}2
 
 function! s:FindTextObject(first, last, middle) "{{{2
 
-  let first  = {'start':[0,0], 'end':[0,0], 'range':0}
-  let last   = {'start':[0,0], 'end':[0,0], 'range':0}
-
-  let middle_p = a:middle ? s:middle_p : ''
-  let start_p  = s:start_p
-  let end_p    = s:end_p
+  let first = {'start':[0,0], 'end':[0,0], 'range':0}
+  let last  = {'start':[0,0], 'end':[0,0], 'range':0}
 
   if a:first[0] == a:last[0] " Range is the current line {{{3
     " searchpair() starts looking at the cursor position. Find out where that
     " should be. Also determine if the current line should be searched.
-    if s:Match(a:first[0], end_p)
+    if s:Match(a:first[0], s:end_p)
       let spos   = 1
       let sflags = s:flags.'b'
     else
@@ -313,9 +302,9 @@ function! s:FindTextObject(first, last, middle) "{{{2
 
     " Let's see where they are
     call cursor(a:first[0], spos)
-    let first.start  = searchpairpos(start_p,middle_p,end_p,sflags,s:skip_e)
+    let first.start  = searchpairpos(s:start_p,a:middle,s:end_p,sflags,s:skip_e)
 
-    if s:Match(a:first[0], start_p)
+    if s:Match(a:first[0], s:start_p)
       let epos   = 9999
       let eflags = s:flags
     else
@@ -325,14 +314,14 @@ function! s:FindTextObject(first, last, middle) "{{{2
 
     " Let's see where they are
     call cursor(a:first[0], epos)
-    let first.end    = searchpairpos(start_p,middle_p,end_p,eflags,s:skip_e)
+    let first.end    = searchpairpos(s:start_p,a:middle,s:end_p,eflags,s:skip_e)
 
     let result = [first.start, first.end]
 
   else " Range is not the current line {{{3
 
     " Let's find a set with the first line of the range
-    if s:Match(a:first[0], end_p)
+    if s:Match(a:first[0], s:end_p)
       let spos   = 1
       let sflags = s:flags.'b'
     else
@@ -340,7 +329,7 @@ function! s:FindTextObject(first, last, middle) "{{{2
       let sflags = s:flags.'bc'
     endif
 
-    if s:Match(a:first[0], start_p)
+    if s:Match(a:first[0], s:start_p)
       let epos   = 9999
       let eflags = s:flags
     else
@@ -349,13 +338,13 @@ function! s:FindTextObject(first, last, middle) "{{{2
     endif
 
     call cursor(a:first[0], spos)
-    let first.start  = searchpairpos(start_p,middle_p,end_p,sflags,s:skip_e)
+    let first.start  = searchpairpos(s:start_p,a:middle,s:end_p,sflags,s:skip_e)
     call cursor(a:first[0], epos)
-    let first.end    = searchpairpos(start_p,middle_p,end_p,eflags,s:skip_e)
+    let first.end    = searchpairpos(s:start_p,a:middle,s:end_p,eflags,s:skip_e)
     let first.range  = first.end[0] - first.start[0]
 
     " Let's find the second set with the last line of the range
-    if s:Match(a:last[0], end_p)
+    if s:Match(a:last[0], s:end_p)
       let spos   = 1
       let sflags = s:flags.'b'
     else
@@ -363,7 +352,7 @@ function! s:FindTextObject(first, last, middle) "{{{2
       let sflags = s:flags.'bc'
     endif
 
-    if s:Match(a:last[0], start_p)
+    if s:Match(a:last[0], s:start_p)
       let epos   = 9999
       let eflags = s:flags
     else
@@ -372,9 +361,9 @@ function! s:FindTextObject(first, last, middle) "{{{2
     endif
 
     call cursor(a:last[0], spos)
-    let last.start  = searchpairpos(start_p,middle_p,end_p,sflags,s:skip_e)
+    let last.start  = searchpairpos(s:start_p,a:middle,s:end_p,sflags,s:skip_e)
     call cursor(a:last[0], epos)
-    let last.end    = searchpairpos(start_p,middle_p,end_p,eflags,s:skip_e)
+    let last.end    = searchpairpos(s:start_p,a:middle,s:end_p,eflags,s:skip_e)
     let last.range  = last.end[0] - last.start[0]
 
     " Now, decide what to return
@@ -411,10 +400,12 @@ function! s:FindTextObject(first, last, middle) "{{{2
     endif
   endif "}}}3
 
-  echom 'Result: '.string(result) . ', first: ' . string(first) . ', last' .
-        \ string(last)
+  "echom string(result) . ', first: ' . string(first) . ', last' .
+  "      \ string(last) . ', epos: ' . epos . ', spos: ' . spos .
+  "      \ ', sflags: ' . sflags . ', eflags: ' . eflags
 
   return result
+
 endfunction "}}}2
 
 function! s:Match(line, part) " {{{2
