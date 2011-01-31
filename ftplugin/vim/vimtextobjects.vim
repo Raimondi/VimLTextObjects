@@ -102,13 +102,6 @@ let s:middle_p  = '\C\v^\s*\zs%(<el%[seif]>|<cat%[ch]>|<fina%[lly]>)'
 " End of the block matches this
 let s:end_p     = '\C\v^\s*\zs%(<endf%[unction]>|<end%(w%[hile]|fo%[r])>|<en%[dif]>|<endt%[ry]>|<aug%[roup]\s+END>)'
 
-" Individual sets of patterns for each kind of block
-let s:function  = {'start_p': '\<fu\%[nction]\>', 'middle_p': '', 'end_p': '\<endf\%[unction]\>'}
-let s:whilefor  = {'start_p': '\<\(wh\%[ile]\|for\)\>', 'middle_p': '', 'end_p': '\<end\(w\%[hile]\|fo\%[r]\)\>'}
-let s:if        = {'start_p': '\<if\>', 'middle_p': '\<el\%[seif]\>', 'end_p': '\<en\%[dif]\>'}
-let s:try       = {'start_p': '\<try\>', 'middle_p': '\<cat\%[ch]\>\|\<fina\%[lly]\>', 'end_p': '\<endt\%[ry]\>'}
-let s:augroup   = {'start_p': '\<aug\%[roup]\s\+\%(END\>\)\@!\S', 'middle_p': '', 'end_p': '\<aug\%[roup]\s\+END\>'}
-
 " Don't wrap or move the cursor
 let s:flags     = 'Wn'
 
@@ -241,9 +234,13 @@ function! s:VimLTextObjectsInner(visual) range "{{{2
       let is_rec = 1
     endif
   endif
-
-  let [t_start, t_end] = first_TO
-  let [start, end] = first_TO
+  if first_TO == [[0,0],[0,0]] && a:visual
+    let [t_start, t_end] = [[a:firstline, 1],[a:lastline, 1]]
+    let [start, end]     = [[a:firstline, 1],[a:lastline, 1]]
+  else
+    let [t_start, t_end] = first_TO
+    let [start, end]     = first_TO
+  endif
   let passes  = 0
 
   let one_more = ((is_block && [start[0], end[0]] == initial) || is_rec) && a:visual
@@ -251,8 +248,8 @@ function! s:VimLTextObjectsInner(visual) range "{{{2
     let t_start[0] -= 1
     let t_end[0]   += 1
   endif
-  "echom '[is_rec, is_block]: ['.is_rec.', '.is_block.'], t_start, t_end: '.t_start[0].', '.t_end[0] .', first_TO: '.string(first_TO).', one_more: '.one_more
-  while  (count1 > 1 || one_more) && first_TO != [[0,0],[0,0]] &&
+  echom '[is_rec, is_block]: ['.is_rec.', '.is_block.'], t_start, t_end: '.t_start[0].', '.t_end[0] .', first_TO: '.string(first_TO).', one_more: '.one_more
+  while  (count1 > 1 || one_more) && (!one_more || first_TO != [[0,0],[0,0]]) &&
         \ (!(count1 > 1) || (t_start[0] - 1 >= 1 && t_end[0] + 1 < lastline))
 
     let passes  += 1
@@ -294,19 +291,14 @@ function! s:VimLTextObjectsInner(visual) range "{{{2
 
 endfunction " }}}2
 
-function! s:FindTextObject(first, last, middle, ...) "{{{2
+function! s:FindTextObject(first, last, middle) "{{{2
 
   let first  = {'start':[0,0], 'end':[0,0], 'range':0}
   let last   = {'start':[0,0], 'end':[0,0], 'range':0}
-  if !a:0
-    let middle_p = a:middle ? s:middle_p : ''
-  else
-    let middle_p = a:middle ? '^\s*\zs'.a:1.middle_p : ''
-  endif
 
-  let start_p  = a:0 ? '^\s*\zs'.a:1.start_p  : s:start_p
-  "let middle_p = a:0 ? a:1.middle_p : s:middle_p
-  let end_p    = a:0 ? '^\s*\zs'.a:1.end_p    : s:end_p
+  let middle_p = a:middle ? s:middle_p : ''
+  let start_p  = s:start_p
+  let end_p    = s:end_p
 
   if a:first[0] == a:last[0] " Range is the current line {{{3
     " searchpair() starts looking at the cursor position. Find out where that
@@ -420,31 +412,9 @@ function! s:FindTextObject(first, last, middle, ...) "{{{2
   endif "}}}3
 
   echom 'Result: '.string(result) . ', first: ' . string(first) . ', last' .
-        \ string(last).', Patterns: '.start_p.':'.middle_p.':'.end_p
-  echom a:0
-  if !a:0 && result != [[0,0],[0,0]]
-    let block_start = substitute(getline(result[0][0]), '^\v\C\s*('.s:beg_words.')?.{-}$', '\1', '')
-    if block_start =~ '^'.s:function.start_p .'$'
-      let block_name = s:function
-    elseif block_start =~ '^'.s:if.start_p .'$'
-      let block_name = s:if
-    elseif block_start =~ '^'.s:whilefor.start_p .'$'
-      let block_name = s:whilefor
-    elseif block_start =~ '^'.s:try.start_p .'$'
-      let block_name = s:try
-    elseif block_start =~ '^'.s:augroup.start_p .'$'
-      let block_name = s:augroup
-    elseif block_start == ''
-      throw "There was no match!"
-    else
-      throw 'Oops! |'.block_start
-    endif
-    echom getline(result[0][0]).':'.block_start
-    return s:FindTextObject(a:first, a:last, a:middle, block_name)
-  else
-    return result
-  endif
+        \ string(last)
 
+  return result
 endfunction "}}}2
 
 function! s:Match(line, part) " {{{2
