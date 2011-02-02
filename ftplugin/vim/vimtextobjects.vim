@@ -14,8 +14,7 @@
 "              plugin, the text objects might not work or work in an
 "              unexpected way.
 "
-" Pending:     - Optionally, first ar goes to do..end, second gets the rest of
-"                the start of the block, if any.
+" Pending:     - Consider continued lines for inner text objects.
 " ============================================================================
 
 " Allow users to disable ftplugins
