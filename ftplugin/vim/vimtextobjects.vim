@@ -201,87 +201,119 @@ function! s:VimLTextObjectsAll(visual) range "{{{2
 
 endfunction " }}}2
 
-function! s:VimLTextObjectsInner(visual) range "{{{2
-  let lastline      = line('$')
-  let start         = [0,0]
-  let middle_p      = s:middle_p
-  let end           = [-1,0]
-  let count1        = v:count1 < 1 ? 1 : v:count1
-  let initial       = [a:firstline, a:lastline]
-
-  " If called from visual mode, find out if it looks like a recursive ir and
-  " if a whole block is selected
-  let is_rec      = 0
-  let is_block    = 0
-  let first_TO = s:FindTextObject([a:firstline, 0],[a:lastline, 0], middle_p)
-  if [[a:firstline, first_TO[0][1]],[a:lastline, first_TO[1][1]]] == first_TO
-    " It is a whole block
-    let is_block = 1
+function! s:VimLTextObjectsInner(visual, ...) range "{{{2
+  " Recursing?
+  if a:0
+    let firstline = a:1
+    let lastline  = a:2
+    let count1    = a:3 - 1
+    let original  = [[firstline, 1], [lastline, len(getline(lastline)) + 1]]
+  else
+    let firstline = a:firstline
+    let lastline  = a:lastline
+    let count1    = v:count1 < 1 ? 1 : v:count1
+    let original  = [getpos("'<")[1:2], getpos("'>")[1:2]]
   endif
-  if getpos("'<")[2] == 1 &&
-        \ getpos("'>")[2] == len(getline(getpos("'>")[1])) + 1 &&
-        \ visualmode() == 'v'
-    " It looks recursive
-    if is_block
-      " It is recursive, with a whole block
-      let is_rec = 2
-    elseif [[a:firstline - 1, first_TO[0][1]],[a:lastline + 1, first_TO[1][1]]] == first_TO
-      " It is recursive, with an inner block
-      let is_rec = 1
-    endif
-  endif
+  let line_eof    = line('$')
+  let current     = {'start': [firstline,0], 'end': [lastline,0]}
+  let middle_p    = s:middle_p
+  let l:count     = 0
+  let d_start     = 0
+  let d_end       = 0
+  let i           = 0
 
-  let [t_start, t_end] = first_TO
-  let [start, end] = first_TO
-  let passes  = 0
-
-  let one_more = ((is_block && [start[0], end[0]] == initial) || is_rec) && a:visual
-  if one_more && is_rec == 2
-    let t_start[0] -= 1
-    let t_end[0]   += 1
-  endif
-  "echom '[is_rec, is_block]: ['.is_rec.', '.is_block.'], t_start, t_end: '.t_start[0].', '.t_end[0] .', first_TO: '.string(first_TO).', one_more: '.one_more
-  while  (count1 > 1 || one_more) && first_TO != [[0,0],[0,0]] &&
-        \ (!(count1 > 1) || (t_start[0] - 1 >= 1 && t_end[0] + 1 < lastline))
-
-    let passes  += 1
-    let [t_start, t_end] = s:FindTextObject([t_start[0] - 1, 0], [t_end[0] + 1, 0], s:middle_p)
-    "echom 't_start, t_end: '.string(t_start).','.string(t_end).':'.passes
-
-    "echom string(t_start).';'.string(t_end).':'.passes
-    if t_start[0] > 0 && t_end[0] > 0
-      let start = t_start
-      let end   = t_end
-    else
+  while i <= 2 && (current.start[0] + d_start) > 0 && (current.end[0] + d_end) <= line_eof
+    let i += 1
+    " Get a text object
+    let [current.start, current.end] = s:FindTextObject(
+          \ [current.start[0] + d_start, 0], [current.end[0] + d_end, 0], middle_p)
+    "echom 'Current: '.string(current).', count: '.i
+    " If it's null, stop looking
+    if [current.start, current.end] == [[0,0],[0,0]]
       break
     endif
-
-    "echom 'initial: '.string(initial).', final: ['.(start[0]).', '.(end[0]).']'
-    if one_more
-      let one_more = 0
-      continue
+    let is_block = 0
+    if [firstline, lastline] == [current.start[0], current.end[0]]
+      " The original selection's range is the same as the one from the text
+      " object.
+      " It is a whole block
+      let is_block = 1
     endif
-    let count1  -= 1
+    let is_repeat = 0
+    " Find out what to do {{{
+    " If:
+    " - Is visual? AND
+    "   - Is repeated? OR
+    "   - Is the selection a previously selected text block?
+    if a:visual
+          \ && (a:0
+          \     || (original[0][1] == 1
+          \         && original[1][1] >= len(getline(getpos("'>")[1])) + 1))
+
+      " Determine what is selected
+      if getline(firstline - 1) =~ s:middle_p ||
+            \ getline(lastline + 1) =~ s:middle_p
+        " The line over and/or under matches a s:middle_p
+        if !is_block
+          " It is repeated with an inner middle block
+          let is_repeat = 4
+          let middle_p = ''
+          let d_start  = 0
+          let d_end    = 0
+        else
+          " It is repeated with an inner middle block and a whole block
+          let is_repeat = 3
+          let middle_p = ''
+          let d_start  = -1
+          let d_end    = 1
+        endif
+      elseif [firstline - 1, lastline + 1] == [current.start[0], current.end[0]]
+        " The text object limits are just over and under the original
+        " selection
+        " It is repeated, with an inner block
+        let is_repeat = 2
+        let d_start  = -1
+        let d_end    = 1
+      elseif is_block
+        " It is repeated, with a whole block
+        let is_repeat = 1
+        let d_start  = -1
+        let d_end    = 1
+      endif
+    endif "}}}
+    "echom 'is_repeat: '.is_repeat.', is_block: '.is_block
+
+    if is_repeat == 0
+      " No need to loop
+      break
+    endif
   endwhile
 
+  "echom 'Current: '.string(current).', count1: '.count1
+  if count1 > 1
+    " Let's recurse
+    let current = s:VimLTextObjectsInner(a:visual, current.start[0] + 1, current.end[0] - 1, count1)
+  endif
+  if a:0
+    return current
+  endif
   if a:visual
-    if end[0] >= start[0] && start[0] >= 1 && end[0] >= 1 && end[0] - start[0] > 1
+    if current.end[0] >= current.start[0] && current.start[0] >= 1 && current.end[0] >= 1 && current.end[0] - current.start[0] > 1
       " Do visual magic
-      exec "normal! \<Esc>".(start[0] + 1).'G'
-      exec "normal! 0v".(end[0] - 1)."G$"
-      "echom string(start).';'.string(end).':'.passes
+      exec "normal! \<Esc>".(current.start[0] + 1).'G'
+      exec "normal! 0v".(current.end[0] - 1)."G$"
     endif
   else
-    if end[0] >= start[0] && start[0] >= 1 && end[0] >= 1 && end[0] - start[0] > 1
+    if current.end[0] >= current.start[0] && current.start[0] >= 1 && current.end[0] >= 1 && current.end[0] - current.start[0] > 1
       " Do operator pending magic
-      return ':exec "normal! '.(start[0] + 1).'G0v'.(end[0] - 1)."G$\"\<CR>"
+      return ':exec "normal! '.(current.start[0] + 1)
+            \ .'G0v'.(current.end[0] - 1)."G$\"\<CR>"
     else
       " No pair found, do nothing
       return "\<Esc>"
     endif
   endif
-
-endfunction " }}}2
+endfunction "}}}2
 
 function! s:FindTextObject(first, last, middle, ...) "{{{2
   if a:0
