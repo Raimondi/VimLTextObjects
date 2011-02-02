@@ -317,135 +317,56 @@ endfunction "}}}2
 
 function! s:FindTextObject(first, last, middle, ...) "{{{2
   if a:0
-    let s:count += 1
+    let l:count = a:1 + 1
   else
-    let s:count  = 1
+    let l:count = 1
   endif
-  echom s:count
+  "echom 'FTO count: '.l:count
   if a:first[0] > a:last[0]
     throw 'Muy mal... a:first > a:last'
   endif
-  echom 'Range: '.string(a:first).', '.string(a:last)
+  "echom 'Range : '.string([a:first, a:last])
 
   let first = {'start':[0,0], 'end':[0,0], 'range':0}
   let last  = {'start':[0,0], 'end':[0,0], 'range':0}
 
-  "if a:first[0] == a:last[0] " Range is the current line {{{3
-    " searchpair() starts looking at the cursor position. Find out where that
-    " should be. Also determine if the current line should be searched.
-    if s:Match(a:first[0], s:end_p)
-      let spos   = 1
-      let sflags = s:flags.'b'
-    else
-      let spos   = 9999
-      let sflags = s:flags.'bc'
-    endif
+  " searchpair() starts looking at the cursor position. Find out where that
+  " should be. Also determine if the current line should be searched.
+  if s:Match(a:first[0], s:end_p)
+    let spos   = 1
+    let sflags = s:flags.'b'
+  else
+    let spos   = 9999
+    let sflags = s:flags.'bc'
+  endif
 
-    " Let's see where they are
-    call cursor(a:first[0], spos)
-    let first.start  = searchpairpos(s:start_p,a:middle,s:end_p,sflags,s:skip_e)
+  " Let's see where they are
+  call cursor(a:first[0], spos)
+  let first.start  = searchpairpos(s:start_p,a:middle,s:end_p,sflags,s:skip_e)
 
-    if s:Match(a:first[0], s:start_p)
-      let epos   = 9999
-      let eflags = s:flags
-    else
-      let epos   = 1
-      let eflags = s:flags.'c'
-    endif
+  if a:middle == ''
+    let s_match = s:Match(a:first[0], s:start_p)
+  else
+    let s_match = s:Match(a:first[0], s:start_p) || s:Match(a:first[0], a:middle)
+  endif
+  if s_match
+    let epos   = 9999
+    let eflags = s:flags
+  else
+    let epos   = 1
+    let eflags = s:flags.'c'
+  endif
 
-    " Let's see where they are
-    call cursor(a:first[0], epos)
-    let first.end    = searchpairpos(s:start_p,a:middle,s:end_p,eflags,s:skip_e)
+  " Let's see where they are
+  call cursor(a:first[0], epos)
+  let first.end    = searchpairpos(s:start_p,a:middle,s:end_p,eflags,s:skip_e)
 
-
-  "else " Range is not the current line {{{3
-
-  "  " Let's find a set with the first line of the range
-  "  if s:Match(a:first[0], s:end_p)
-  "    let spos   = 1
-  "    let sflags = s:flags.'b'
-  "  else
-  "    let spos   = 9999
-  "    let sflags = s:flags.'bc'
-  "  endif
-
-  "  if s:Match(a:first[0], s:start_p)
-  "    let epos   = 9999
-  "    let eflags = s:flags
-  "  else
-  "    let epos   = 1
-  "    let eflags = s:flags.'c'
-  "  endif
-
-  "  call cursor(a:first[0], spos)
-  "  let first.start  = searchpairpos(s:start_p,a:middle,s:end_p,sflags,s:skip_e)
-  "  call cursor(a:first[0], epos)
-  "  let first.end    = searchpairpos(s:start_p,a:middle,s:end_p,eflags,s:skip_e)
-  "  let first.range  = first.end[0] - first.start[0]
-
-  "  " Let's find the second set with the last line of the range
-  "  if s:Match(a:last[0], s:end_p)
-  "    let spos   = 1
-  "    let sflags = s:flags.'b'
-  "  else
-  "    let spos   = 9999
-  "    let sflags = s:flags.'bc'
-  "  endif
-
-  "  if s:Match(a:last[0], s:start_p)
-  "    let epos   = 9999
-  "    let eflags = s:flags
-  "  else
-  "    let epos   = 1
-  "    let eflags = s:flags.'c'
-  "  endif
-
-  "  call cursor(a:last[0], spos)
-  "  let last.start  = searchpairpos(s:start_p,a:middle,s:end_p,sflags,s:skip_e)
-  "  call cursor(a:last[0], epos)
-  "  let last.end    = searchpairpos(s:start_p,a:middle,s:end_p,eflags,s:skip_e)
-  "  let last.range  = last.end[0] - last.start[0]
-
-  "  " Now, decide what to return
-  "  if first.range > last.range
-  "    if first.start[0] <= last.start[0] && first.end[0] >= last.end[0]
-  "      " last is inside first
-  "      let result = [first.start, first.end]
-  "    elseif last.range == 0
-  "      " Last is null
-  "      let result = [first.start, first.end]
-  "    else
-  "      " Something is wrong, last is not inside first
-  "      let result = [[0,0],[0,0]]
-  "    endif
-  "  elseif first.range < last.range
-  "    if first.start[0] >= last.start[0] && first.end[0] <= last.end[0]
-  "      " first is inside last
-  "      let result = [last.start, last.end]
-  "    elseif first.range == 0
-  "      " first is null
-  "      let result = [last.start, last.end]
-  "    else
-  "      " Something is wrong, first is not inside last
-  "      let result = [[0,0],[0,0]]
-  "    endif
-  "  else
-  "    if first.start[0] == last.start[0]
-  "      " first and last are the same
-  "      let result = [first.start, first.end]
-  "    else
-  "      " first and last are not the same
-  "      let result = [a:first, a:last]
-  "    endif
-  "  endif
-  "endif "}}}3
-
-  echom 'First: '.string([first.start, first.end])
+  "echom 'First : '.string([first.start, first.end])
   if a:first == a:last
     let result = [first.start, first.end]
   else
-    let [last.start, last.end] = s:FindTextObject(a:last, a:last, a:middle, 1)
-    echom 'Last : '.string([last.start, last.end])
+    let [last.start, last.end] = s:FindTextObject(a:last, a:last, a:middle, l:count)
+    "echom 'Last  : '.string([last.start, last.end])
 
     let first.range  = first.end[0] - first.start[0]
     let last.range   = last.end[0] - last.start[0]
@@ -454,49 +375,47 @@ function! s:FindTextObject(first, last, middle, ...) "{{{2
           \ (getline(last.start[0]) =~ s:middle_p && last.range  > 0)
       " Looks like a middle inner match, start over without looking for
       " s:middle_p
-      return s:FindTextObject(a:first, a:last, '', 1)
-    endif
+      let result = s:FindTextObject(a:first, a:last, '', 1)
 
-    " Now, decide what to return
-    if first.range > last.range
-      if first.start[0] <= last.start[0] && first.end[0] >= last.end[0]
-        " last is inside first
-        let result = [first.start, first.end]
-      elseif last.range == 0
-        " Last is null
-        let result = [first.start, first.end]
-      else
-        " Something is wrong, last is not inside first
-        let result = [[0,0],[0,0]]
-      endif
-    elseif first.range < last.range
-      if first.start[0] >= last.start[0] && first.end[0] <= last.end[0]
-        " first is inside last
-        let result = [last.start, last.end]
-      elseif first.range == 0
-        " first is null
-        let result = [last.start, last.end]
-      else
-        " Something is wrong, first is not inside last
-        let result = [[0,0],[0,0]]
-      endif
     else
-      if first.start[0] == last.start[0]
-        " first and last are the same
-        let result = [first.start, first.end]
+      " Now, decide what to return
+      if first.range > last.range
+        if first.start[0] <= last.start[0] && first.end[0] >= last.end[0]
+          " last is inside first
+          let result = [first.start, first.end]
+        elseif last.range == 0
+          " Last is null
+          let result = [first.start, first.end]
+        else
+          " Something is wrong, last is not inside first
+          let result = [[0,0],[0,0]]
+        endif
+      elseif first.range < last.range
+        if first.start[0] >= last.start[0] && first.end[0] <= last.end[0]
+          " first is inside last
+          let result = [last.start, last.end]
+        elseif first.range == 0
+          " first is null
+          let result = [last.start, last.end]
+        else
+          " Something is wrong, first is not inside last
+          let result = [[0,0],[0,0]]
+        endif
       else
-        " first and last are not the same
-        "let result = [a:first, a:last]
-        let result = [[0,0],[0,0]]
+        if first.start[0] == last.start[0]
+          " first and last are the same
+          let result = [first.start, first.end]
+        else
+          " first and last are not the same
+          "let result = [a:first, a:last]
+          let result = [[0,0],[0,0]]
+        endif
       endif
+
     endif
-
-  "echom string(result) . ', first: ' . string(first) . ', last' .
-  "      \ string(last) . ', epos: ' . epos . ', spos: ' . spos .
-  "      \ ', sflags: ' . sflags . ', eflags: ' . eflags
-
-
   endif
+  "echom 'Result: '.string(result) . ', first: ' . string(first) . ', last' .
+        \ string(last). ', spos: ' . spos . ', sflags: ' . sflags . ', epos: ' . epos . ', eflags: ' . eflags. '. middle_p: '.a:middle
   return result
 
 endfunction "}}}2
