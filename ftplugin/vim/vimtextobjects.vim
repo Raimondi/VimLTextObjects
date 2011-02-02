@@ -114,11 +114,11 @@ if exists('loaded_VimLTextObjects') && !exists('testing_VimLTextObjects')
 elseif exists('testing_VimLTextObjects')
   echom '----Loaded on: '.strftime("%Y %b %d %X")
 
-  function! Test(test,...) range
+  function! Test(first, last, test,...)
     if a:test == 1
-      return s:Match(a:firstline, s:start_p).', '.s:Match(a:firstline, s:middle_p).', '.s:Match(a:firstline, s:end_p)
+      return s:Match(a:first, s:start_p).', '.s:Match(a:first, s:middle_p).', '.s:Match(a:first, s:end_p)
     elseif a:test == 2
-      return s:FindTextObject([a:firstline,0], [a:lastline,0], s:middle_p)
+      return s:FindTextObject([a:first,0], [a:last,0], s:middle_p)
     elseif a:test == 3
       return searchpairpos(s:start_p, s:middle_p, s:end_p, a:1, s:skip_e)
     elseif a:test == 4
@@ -129,8 +129,7 @@ elseif exists('testing_VimLTextObjects')
       throw 'Ooops!'
     endif
   endfunction
-  command! -bar -range -buffer -nargs=+ Test echom string(Test(<f-args>))
-
+  command! -bar -range -buffer -nargs=+ Test echom string(Test(<line1>, <line2>, <f-args>))
 endif
 let loaded_VimLTextObjects = '0.1a'
  "}}}2
